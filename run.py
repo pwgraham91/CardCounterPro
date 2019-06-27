@@ -1,4 +1,4 @@
-from statistics import median_high
+import collections
 from typing import List
 
 
@@ -22,6 +22,8 @@ def get_user_possible_outcomes(remaining_cards, user_cards):
                 user_outcomes[card_outcomes[card]] = 1
         else:
             score = get_score(user_cards + [card])
+            if score >= 22:
+                score = 22
             card_outcomes[card] = score
             if user_outcomes.get(score):
                 user_outcomes[score] += 1
@@ -29,6 +31,31 @@ def get_user_possible_outcomes(remaining_cards, user_cards):
                 user_outcomes[score] = 1
 
     return user_outcomes
+
+
+def determine_dealer_outcomes(remaining_cards, dealer_cards, dealer_outcomes):
+    for card in remaining_cards:
+        remaining_cards_copy = remaining_cards.copy()
+        remaining_cards_copy.remove(card)
+
+        dealer_cards_copy = dealer_cards.copy()
+        dealer_cards_copy += [card]
+        score = get_score(dealer_cards_copy)
+        if score >= 22:
+            score = 22
+        if score < 17:
+            determine_dealer_outcomes(remaining_cards_copy, dealer_cards_copy, dealer_outcomes)
+        else:
+            if dealer_outcomes.get(score):
+                dealer_outcomes[score] += 1
+            else:
+                dealer_outcomes[score] = 1
+
+
+def get_dealer_possible_outcomes(remaining_cards, dealer_cards):
+    dealer_outcomes = {}
+    determine_dealer_outcomes(remaining_cards, dealer_cards, dealer_outcomes)
+    return dealer_outcomes
 
 
 def get_score(user_cards: List[int]) -> int:
@@ -45,21 +72,41 @@ def get_score(user_cards: List[int]) -> int:
     return user_score
 
 
+def build_histogram(user_outcomes):
+    low_hands = 0
+    high_hands = 0
+    busting_hands = 0
+    for key, value in collections.OrderedDict(sorted(user_outcomes.items())).items():
+        # print("{}: {} {}".format(key, '-' * value, value))
+        print("{}: {}".format(key, value))
+        if key < 17:
+            low_hands += value
+        elif 17 <= key <= 21:
+            high_hands += value
+        else:
+            busting_hands += value
+
+    total_outcomes = low_hands + high_hands + busting_hands
+    print("high_hand_chance: {}%".format(round((high_hands / total_outcomes) * 100.0, 1)))
+    print("bust chance: {}%".format(round((busting_hands / total_outcomes) * 100.0, 1)))
+
+
 def run_simulations(remaining_cards, seen_cards, user_cards, dealer_card):
     user_outcomes = get_user_possible_outcomes(remaining_cards, user_cards)
-    likely_next_card = median_high(remaining_cards)
-    user_likely_score = get_score(user_cards + [likely_next_card])
-    print("user likely score: {}".format(user_likely_score))
-    dealer_hand = [dealer_card, likely_next_card]
-    dealer_likely_score = get_score(dealer_hand)
-    while dealer_likely_score < 17:
-        dealer_copy = remaining_cards.copy()
-        dealer_copy.remove(likely_next_card)
-        likely_next_card = median_high(dealer_copy)
-        dealer_hand.append(likely_next_card)
-        dealer_likely_score = get_score(dealer_hand)
-    print("dealer likely score: {}".format(dealer_likely_score))
-    print("remaining cards: {}".format(remaining_cards))
+    print('user outcomes')
+    build_histogram(user_outcomes)
+
+    dealer_outcomes = get_dealer_possible_outcomes(remaining_cards, [dealer_card])
+    print('dealer outcomes')
+    build_histogram(dealer_outcomes)
+    # while dealer_likely_score < 17:
+    #     dealer_copy = remaining_cards.copy()
+    #     dealer_copy.remove(likely_next_card)
+    #     likely_next_card = median_high(dealer_copy)
+    #     dealer_hand.append(likely_next_card)
+    #     dealer_likely_score = get_score(dealer_hand)
+    # print("dealer likely score: {}".format(dealer_likely_score))
+    # print("remaining cards: {}".format(remaining_cards))
 
     hit_me(remaining_cards, seen_cards, user_cards, dealer_card)
 
