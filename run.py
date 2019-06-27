@@ -72,41 +72,25 @@ def get_score(user_cards: List[int]) -> int:
     return user_score
 
 
-def build_histogram(user_outcomes):
-    low_hands = 0
-    high_hands = 0
-    busting_hands = 0
-    for key, value in collections.OrderedDict(sorted(user_outcomes.items())).items():
-        # print("{}: {} {}".format(key, '-' * value, value))
-        print("{}: {}".format(key, value))
-        if key < 17:
-            low_hands += value
-        elif 17 <= key <= 21:
-            high_hands += value
-        else:
-            busting_hands += value
-
-    total_outcomes = low_hands + high_hands + busting_hands
-    print("high_hand_chance: {}%".format(round((high_hands / total_outcomes) * 100.0, 1)))
-    print("bust chance: {}%".format(round((busting_hands / total_outcomes) * 100.0, 1)))
-
-
 def run_simulations(remaining_cards, seen_cards, user_cards, dealer_card):
-    user_outcomes = get_user_possible_outcomes(remaining_cards, user_cards)
-    print('user outcomes')
-    build_histogram(user_outcomes)
-
+    user_score = get_score(user_cards)
+    # if stand
     dealer_outcomes = get_dealer_possible_outcomes(remaining_cards, [dealer_card])
-    print('dealer outcomes')
-    build_histogram(dealer_outcomes)
-    # while dealer_likely_score < 17:
-    #     dealer_copy = remaining_cards.copy()
-    #     dealer_copy.remove(likely_next_card)
-    #     likely_next_card = median_high(dealer_copy)
-    #     dealer_hand.append(likely_next_card)
-    #     dealer_likely_score = get_score(dealer_hand)
-    # print("dealer likely score: {}".format(dealer_likely_score))
-    # print("remaining cards: {}".format(remaining_cards))
+    possible_outcomes = 0
+    positive_outcomes = 0
+    push_outcomes = 0
+    for key, value in dealer_outcomes.items():
+        possible_outcomes += value
+        if key >= 22:
+            positive_outcomes += value
+        elif key == user_score:
+            push_outcomes += value
+        elif key < user_score:
+            positive_outcomes += value
+    print("STAND positive outcome chance: {}%".format(round((positive_outcomes / possible_outcomes) * 100, 2)))
+    print("STAND push outcome chance: {}%".format(round((push_outcomes / possible_outcomes) * 100, 2)))
+    print("STAND negative outcome chance: {}%".format(
+        round(((possible_outcomes - positive_outcomes - push_outcomes) / possible_outcomes) * 100, 2)))
 
     hit_me(remaining_cards, seen_cards, user_cards, dealer_card)
 
